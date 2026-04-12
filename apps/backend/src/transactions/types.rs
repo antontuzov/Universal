@@ -16,6 +16,7 @@ pub struct TransactionQuery {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TransactionResponse {
     pub id: Uuid,
     pub wallet_id: Uuid,

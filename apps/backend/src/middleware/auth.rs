@@ -1,22 +1,31 @@
 use axum::{
     body::Body,
-    extract::Request,
+    extract::{Request, State},
     http::{HeaderMap, StatusCode},
     middleware::Next,
     response::Response,
 };
 use jsonwebtoken::{decode, DecodingKey, Validation};
+use std::sync::Arc;
 
 use crate::auth::Claims;
+use crate::state::AppState;
+use crate::redis;
 
 /// Authentication middleware that validates JWT tokens
 pub async fn auth_middleware(
+    State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
     let token = extract_token(&headers)?;
     let claims = verify_token(&token)?;
+
+    // Check if token is blacklisted in Redis
+    if redis::is_token_blacklisted(&state.redis, &token).await.unwrap_or(false) {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
 
     // Add claims to request extensions for downstream access
     req.extensions_mut().insert(claims);
@@ -26,12 +35,18 @@ pub async fn auth_middleware(
 
 /// Admin guard middleware that checks if user has admin role
 pub async fn admin_guard(
+    State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
     let token = extract_token(&headers)?;
     let claims = verify_token(&token)?;
+
+    // Check if token is blacklisted
+    if redis::is_token_blacklisted(&state.redis, &token).await.unwrap_or(false) {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
 
     if claims.role != "admin" {
         return Err(StatusCode::FORBIDDEN);
@@ -62,7 +77,7 @@ fn extract_token(headers: &HeaderMap) -> Result<String, StatusCode> {
 /// Verify JWT token and return claims
 fn verify_token(token: &str) -> Result<Claims, StatusCode> {
     let secret = std::env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "default-secret-change-me".to_string());
+        .expect("JWT_SECRET environment variable must be set");
 
     decode::<Claims>(
         token,

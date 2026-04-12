@@ -2,6 +2,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AdminUserResponse {
     pub id: Uuid,
     pub email: String,
@@ -11,6 +12,7 @@ pub struct AdminUserResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SystemStats {
     pub total_users: i64,
     pub total_wallets: i64,

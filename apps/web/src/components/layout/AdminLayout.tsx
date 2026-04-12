@@ -1,4 +1,4 @@
-import { Outlet } from '@tanstack/react-router';
+import { Outlet, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -17,10 +17,10 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const navItems = [
-    { icon: Users, label: 'Users', href: '/admin' },
-    { icon: Wallet, label: 'Wallets', href: '/admin/wallets' },
-    { icon: Activity, label: 'System Health', href: '/admin/health' },
-    { icon: FileText, label: 'Audit Logs', href: '/admin/logs' },
+    { icon: Users, label: 'Users', to: '/admin' as const },
+    { icon: Wallet, label: 'Wallets', to: '/admin/wallets' as const },
+    { icon: Activity, label: 'System Health', to: '/admin/health' as const },
+    { icon: FileText, label: 'Audit Logs', to: '/admin/logs' as const },
   ];
 
   return (
@@ -56,15 +56,18 @@ export default function AdminLayout() {
         <nav className="flex-1 p-4 space-y-2">
           {navItems.map((item) => (
             <Button
-              key={item.href}
+              key={item.to}
               variant="ghost"
+              asChild
               className={cn(
                 'w-full justify-start gap-3',
                 !sidebarOpen && 'justify-center px-0'
               )}
             >
-              <item.icon className="w-5 h-5" />
-              {sidebarOpen && <span>{item.label}</span>}
+              <Link to={item.to}>
+                <item.icon className="w-5 h-5 shrink-0" />
+                {sidebarOpen && <span>{item.label}</span>}
+              </Link>
             </Button>
           ))}
         </nav>
@@ -73,13 +76,16 @@ export default function AdminLayout() {
         <div className="p-4 border-t border-gray-200">
           <Button
             variant="ghost"
+            asChild
             className={cn(
               'w-full justify-start gap-3',
               !sidebarOpen && 'justify-center px-0'
             )}
           >
-            <ArrowLeft className="w-5 h-5" />
-            {sidebarOpen && <span>Back to Dashboard</span>}
+            <Link to="/dashboard">
+              <ArrowLeft className="w-5 h-5 shrink-0" />
+              {sidebarOpen && <span>Back to Dashboard</span>}
+            </Link>
           </Button>
         </div>
       </motion.aside>

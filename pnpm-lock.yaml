@@ -13,6 +13,9 @@ importers:
       '@radix-ui/react-avatar':
         specifier: ^1.0.4
         version: 1.1.11(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.5)(react@19.2.5)
+      '@radix-ui/react-compose-refs':
+        specifier: ^1.1.2
+        version: 1.1.2(@types/react@19.2.14)(react@19.2.5)
       '@radix-ui/react-dialog':
         specifier: ^1.0.5
         version: 1.1.15(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.5)(react@19.2.5)
@@ -22,6 +25,9 @@ importers:
       '@radix-ui/react-label':
         specifier: ^2.0.2
         version: 2.1.8(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.5)(react@19.2.5)
+      '@radix-ui/react-primitive':
+        specifier: ^2.1.4
+        version: 2.1.4(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.5)(react@19.2.5)
       '@radix-ui/react-slot':
         specifier: ^1.0.2
         version: 1.2.4(@types/react@19.2.14)(react@19.2.5)
@@ -31,15 +37,30 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.0.7
         version: 1.2.8(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.5)(react@19.2.5)
+      '@tanstack/query-core':
+        specifier: ^5.99.0
+        version: 5.99.0
       '@tanstack/react-query':
         specifier: ^5.17.19
         version: 5.99.0(react@19.2.5)
       '@tanstack/react-router':
         specifier: ^1.15.22
         version: 1.168.18(react-dom@19.2.5)(react@19.2.5)
+      '@tanstack/react-store':
+        specifier: ^0.10.0
+        version: 0.10.0(react-dom@19.2.5)(react@19.2.5)
       '@tanstack/react-table':
         specifier: ^8.11.6
         version: 8.21.3(react-dom@19.2.5)(react@19.2.5)
+      '@tanstack/router-core':
+        specifier: ^1.168.14
+        version: 1.168.14
+      '@tanstack/store':
+        specifier: ^0.10.0
+        version: 0.10.0
+      '@universal/shared':
+        specifier: workspace:^
+        version: link:../../packages/shared
       axios:
         specifier: ^1.6.5
         version: 1.15.0
@@ -64,12 +85,18 @@ importers:
       recharts:
         specifier: ^2.10.4
         version: 2.15.4(react-dom@19.2.5)(react@19.2.5)
+      sonner:
+        specifier: ^2.0.7
+        version: 2.0.7(react-dom@19.2.5)(react@19.2.5)
       tailwind-merge:
         specifier: ^2.2.1
         version: 2.6.1
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.2.2)
+      use-sync-external-store:
+        specifier: ^1.6.0
+        version: 1.6.0(react@19.2.5)
       zod:
         specifier: ^3.22.4
         version: 3.25.76
@@ -1969,6 +1996,18 @@ packages:
       react-dom: 19.2.5(react@19.2.5)
     dev: false
 
+  /@tanstack/react-store@0.10.0(react-dom@19.2.5)(react@19.2.5):
+    resolution: {integrity: sha512-S1rdnL5OtGLpUBlM9hrQ0heGZFBIzjIwhqrboFWq4pAAufpOuf2eL/dqyupXO9OCblwxBhuB2n43ZcDNqrtoDw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    dependencies:
+      '@tanstack/store': 0.10.0
+      react: 19.2.5
+      react-dom: 19.2.5(react@19.2.5)
+      use-sync-external-store: 1.6.0(react@19.2.5)
+    dev: false
+
   /@tanstack/react-store@0.9.3(react-dom@19.2.5)(react@19.2.5):
     resolution: {integrity: sha512-y2iHd/N9OkoQbFJLUX1T9vbc2O9tjH0pQRgTcx1/Nz4IlwLvkgpuglXUx+mXt0g5ZDFrEeDnONPqkbfxXJKwRg==}
     peerDependencies:
@@ -2002,6 +2041,10 @@ packages:
       cookie-es: 3.1.1
       seroval: 1.5.2
       seroval-plugins: 1.5.2(seroval@1.5.2)
+    dev: false
+
+  /@tanstack/store@0.10.0:
+    resolution: {integrity: sha512-KXAPlXun5J9DjO5LYo+EVjVHGdHfOl5YWE9TVPh4MeHl6gIngIV0fC5rE22JTRZa9KCMiKidh5FG6ufE2usr7Q==}
     dev: false
 
   /@tanstack/store@0.9.3:
@@ -3923,6 +3966,16 @@ packages:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
     dev: true
+
+  /sonner@2.0.7(react-dom@19.2.5)(react@19.2.5):
+    resolution: {integrity: sha512-W6ZN4p58k8aDKA4XPcx2hpIQXBRAgyiWVkYhT7CvK6D3iAu7xjvVyhQHg2/iaKJZ1XVJ4r7XuwGL+WGEK37i9w==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+    dependencies:
+      react: 19.2.5
+      react-dom: 19.2.5(react@19.2.5)
+    dev: false
 
   /source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}

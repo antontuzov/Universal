@@ -1,6 +1,6 @@
 use axum::{
-    extract::State,
-    http::StatusCode,
+    extract::{State, Extension},
+    http::{StatusCode, HeaderMap},
     routing::post,
     Json, Router,
 };
@@ -16,6 +16,7 @@ use uuid::Uuid;
 use crate::state::AppState;
 use crate::error::app_error::AppError;
 use crate::db::queries;
+use crate::redis;
 
 use super::types::*;
 
@@ -24,6 +25,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/register", post(register))
         .route("/login", post(login))
         .route("/refresh", post(refresh_token))
+        .route("/logout", post(logout))
         .with_state(state)
 }
 
@@ -132,6 +134,32 @@ pub async fn refresh_token(
     }))
 }
 
+/// Logout — blacklist the token and invalidate session
+pub async fn logout(
+    State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
+    headers: HeaderMap,
+) -> Result<Json<serde_json::Value>, AppError> {
+    // Extract and blacklist the current access token
+    if let Ok(token) = extract_token(&headers) {
+        // Blacklist for remaining access token lifetime (15 min default)
+        let _ = redis::blacklist_token(&state.redis, &token, 900).await;
+        tracing::info!("🔒 User {} logged out, token blacklisted", claims.email);
+    }
+
+    Ok(Json(serde_json::json!({ "message": "Logged out successfully" })))
+}
+
+fn extract_token(headers: &HeaderMap) -> Result<String, ()> {
+    let auth_header = headers.get("Authorization").ok_or(())?;
+    let auth_str = auth_header.to_str().map_err(|_| ())?;
+    if auth_str.starts_with("Bearer ") {
+        Ok(auth_str[7..].to_string())
+    } else {
+        Err(())
+    }
+}
+
 /// Generate JWT token
 fn generate_token(
     user_id: Uuid,
@@ -139,24 +167,23 @@ fn generate_token(
     role: &str,
     is_refresh: bool,
 ) -> Result<String, AppError> {
-    let expiration = if is_refresh {
+    // Parse expiration: use seconds directly, fallback to safe defaults
+    let expiration_seconds: i64 = if is_refresh {
+        // REFRESH_TOKEN_EXPIRATION in seconds (default 7 days = 604800s)
         std::env::var("REFRESH_TOKEN_EXPIRATION")
-            .unwrap_or_else(|_| "7d".to_string())
-            .parse::<i64>()
-            .unwrap_or(7)
-            * 24
-            * 60
-            * 60
+            .ok()
+            .and_then(|v| v.parse::<i64>().ok())
+            .unwrap_or(604800)
     } else {
+        // JWT_EXPIRATION in seconds (default 15 minutes = 900s)
         std::env::var("JWT_EXPIRATION")
-            .unwrap_or_else(|_| "15m".to_string())
-            .parse::<i64>()
-            .unwrap_or(15)
-            * 60
+            .ok()
+            .and_then(|v| v.parse::<i64>().ok())
+            .unwrap_or(900)
     };
 
     let exp = chrono::Utc::now()
-        .checked_add_signed(Duration::seconds(expiration))
+        .checked_add_signed(Duration::seconds(expiration_seconds))
         .ok_or_else(|| AppError::Internal("Failed to calculate expiration".to_string()))?
         .timestamp();
 
@@ -167,8 +194,10 @@ fn generate_token(
         exp,
     };
 
+    // CRITICAL: JWT_SECRET must be set in production. We panic if missing
+    // to prevent accidentally running with a weak default.
     let secret = std::env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "default-secret-change-me".to_string());
+        .expect("JWT_SECRET environment variable must be set in production");
 
     encode(
         &Header::default(),
@@ -183,7 +212,7 @@ fn verify_token(token: &str, _is_refresh: bool) -> Result<Claims, AppError> {
     use jsonwebtoken::{decode, DecodingKey, Validation};
 
     let secret = std::env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "default-secret-change-me".to_string());
+        .expect("JWT_SECRET environment variable must be set");
 
     let validation = Validation::default();
 

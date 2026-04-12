@@ -9,7 +9,6 @@ use std::sync::Arc;
 use crate::state::AppState;
 use crate::error::app_error::AppError;
 use crate::db::queries;
-use crate::middleware::auth::admin_guard;
 
 use super::types::*;
 
@@ -17,7 +16,6 @@ pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/users", get(list_users))
         .route("/stats", get(system_stats))
-        .layer(axum::middleware::from_fn(admin_guard))
         .with_state(state)
 }
 

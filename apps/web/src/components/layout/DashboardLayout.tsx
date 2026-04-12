@@ -1,4 +1,4 @@
-import { Outlet } from '@tanstack/react-router';
+import { Outlet, useNavigate, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -7,23 +7,34 @@ import {
   LayoutDashboard,
   Wallet,
   ArrowLeftRight,
-  Settings,
   Shield,
   Menu,
   X,
   LogOut,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import api from '@/lib/api';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Ignore errors — always clear client state
+    }
+    logout();
+    navigate({ to: '/' });
+  };
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Overview', href: '/dashboard' },
-    { icon: Wallet, label: 'Wallets', href: '/dashboard/wallets' },
-    { icon: ArrowLeftRight, label: 'Transactions', href: '/dashboard/transactions' },
-    { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
+    { icon: LayoutDashboard, label: 'Overview', to: '/dashboard' as const },
+    { icon: Wallet, label: 'Wallets', to: '/dashboard/wallets' as const },
+    { icon: ArrowLeftRight, label: 'Transactions', to: '/dashboard/transactions' as const },
+    { icon: Settings, label: 'Settings', to: '/dashboard/settings' as const },
   ];
 
   return (
@@ -59,15 +70,18 @@ export default function DashboardLayout() {
         <nav className="flex-1 p-4 space-y-2">
           {navItems.map((item) => (
             <Button
-              key={item.href}
+              key={item.to}
               variant="ghost"
+              asChild
               className={cn(
                 'w-full justify-start gap-3',
                 !sidebarOpen && 'justify-center px-0'
               )}
             >
-              <item.icon className="w-5 h-5" />
-              {sidebarOpen && <span>{item.label}</span>}
+              <Link to={item.to}>
+                <item.icon className="w-5 h-5 shrink-0" />
+                {sidebarOpen && <span>{item.label}</span>}
+              </Link>
             </Button>
           ))}
         </nav>
@@ -76,23 +90,26 @@ export default function DashboardLayout() {
         <div className="p-4 border-t border-gray-200 space-y-2">
           <Button
             variant="ghost"
+            asChild
             className={cn(
               'w-full justify-start gap-3',
               !sidebarOpen && 'justify-center px-0'
             )}
           >
-            <Shield className="w-5 h-5" />
-            {sidebarOpen && <span>Admin Panel</span>}
+            <Link to="/admin">
+              <Shield className="w-5 h-5 shrink-0" />
+              {sidebarOpen && <span>Admin Panel</span>}
+            </Link>
           </Button>
           <Button
             variant="ghost"
-            onClick={logout}
+            onClick={handleLogout}
             className={cn(
               'w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50',
               !sidebarOpen && 'justify-center px-0'
             )}
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-5 h-5 shrink-0" />
             {sidebarOpen && <span>Logout</span>}
           </Button>
         </div>
@@ -109,9 +126,13 @@ export default function DashboardLayout() {
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-universal-dark to-universal-cyan flex items-center justify-center text-white font-semibold">
-              U
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-900">{user?.email}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-universal-dark to-universal-cyan flex items-center justify-center text-white font-semibold shrink-0">
+              {user?.email?.[0].toUpperCase() ?? 'U'}
             </div>
           </div>
         </header>

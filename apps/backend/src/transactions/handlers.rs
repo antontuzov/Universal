@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 use crate::state::AppState;
 use crate::error::app_error::AppError;
-use crate::db::queries;
 use crate::middleware::auth::auth_middleware;
 
 use super::types::*;
@@ -16,7 +15,6 @@ use super::types::*;
 pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/send", post(send_transaction))
-        .layer(axum::middleware::from_fn(auth_middleware))
         .with_state(state)
 }
 

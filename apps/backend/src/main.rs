@@ -10,6 +10,8 @@ mod admin;
 mod db;
 mod middleware;
 mod error;
+mod redis;
+mod user;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -42,8 +44,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
         .expect("Failed to run migrations");
 
-    // Create router
-    let app = router::create_router(pool);
+    // Create router (includes Redis initialization)
+    let app = router::create_router(pool).await;
 
     // Start server
     let addr: SocketAddr = format!("0.0.0.0:{}", port)

@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuthStore } from '@/stores/authStore';
 import { useAuth } from '@/hooks/useAuth';
 import { X, Wallet } from 'lucide-react';
+import { authSchemas } from '@universal/shared';
+import { showSuccess, showError } from '@/lib/toast';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,12 +20,38 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { login, register, isLoading } = useAuth();
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
 
+  const validate = (): string | null => {
+    try {
+      if (isLogin) {
+        authSchemas.login.parse({ email, password });
+      } else {
+        authSchemas.register.parse({ email, password });
+        if (password !== confirmPassword) {
+          return 'Passwords do not match';
+        }
+      }
+      return null;
+    } catch (err: any) {
+      if (err.errors?.[0]?.message) {
+        return err.errors[0].message;
+      }
+      return 'Invalid input';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validationError = validate();
+    if (validationError) {
+      showError('Validation Error', validationError);
+      return;
+    }
 
     try {
       const result = isLogin
@@ -31,9 +59,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         : await register.mutateAsync({ email, password });
 
       setAuth(result.user, result.accessToken, result.refreshToken);
+      showSuccess('Welcome!', `Logged in as ${result.user.email}`);
       navigate({ to: '/dashboard' });
-    } catch (error) {
-      console.error('Authentication failed:', error);
+    } catch (err: any) {
+      showError(
+        'Authentication Failed',
+        err?.response?.data?.message ?? err?.message ?? 'Please try again.'
+      );
     }
   };
 
@@ -108,7 +140,27 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       autoComplete={isLogin ? 'current-password' : 'new-password'}
                       required
                     />
+                    {!isLogin && (
+                      <p className="text-xs text-gray-500">
+                        Min 8 chars, must include uppercase, lowercase, and number.
+                      </p>
+                    )}
                   </div>
+
+                  {!isLogin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        required
+                      />
+                    </div>
+                  )}
 
                   <Button
                     type="submit"

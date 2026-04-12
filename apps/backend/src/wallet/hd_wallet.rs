@@ -2,10 +2,10 @@ use bip39::Mnemonic;
 use rand::thread_rng;
 use zeroize::Zeroize;
 
-/// Generate a new BIP39 mnemonic phrase
+/// Generate a new BIP39 mnemonic phrase (24 words = 256 bits of entropy)
 pub fn generate_mnemonic() -> Result<Mnemonic, Box<dyn std::error::Error>> {
     let mut rng = thread_rng();
-    let mnemonic = Mnemonic::generate_in_with(&mut rng, bip39::Language::English, 256)?;
+    let mnemonic = Mnemonic::generate_in_with(&mut rng, bip39::Language::English, 24)?;
     Ok(mnemonic)
 }
 
@@ -36,13 +36,12 @@ mod tests {
     fn test_generate_mnemonic() {
         let mnemonic = generate_mnemonic().unwrap();
         let phrase = mnemonic.to_string();
-        
+
         // Should be 24 words
         assert_eq!(phrase.split_whitespace().count(), 24);
-        
-        // Should validate successfully
-        let parsed = validate_mnemonic(&phrase).unwrap();
-        assert!(parsed.check());
+
+        // bip39 v2 validates on parse, so re-parsing validates it
+        let _parsed = validate_mnemonic(&phrase).unwrap();
     }
 
     #[test]

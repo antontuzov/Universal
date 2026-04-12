@@ -1,16 +1,16 @@
 use axum::{
-    extract::State,
+    extract::{State, Extension},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
 };
 use std::sync::Arc;
-use uuid::Uuid;
 
 use crate::state::AppState;
 use crate::error::app_error::AppError;
 use crate::db::queries;
-use crate::middleware::auth::auth_middleware;
+use crate::db::delete;
+use crate::auth::Claims;
 
 use super::types::*;
 use super::hd_wallet;
@@ -21,19 +21,17 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/", get(list_wallets))
         .route("/create", post(create_wallet))
         .route("/import", post(import_wallet))
+        .route("/:id", post(delete_wallet_handler))
         .route("/:id/balance", get(get_balance))
-        .layer(axum::middleware::from_fn(auth_middleware))
         .with_state(state)
 }
 
-/// List all wallets for a user
+/// List all wallets for the authenticated user
 pub async fn list_wallets(
     State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
 ) -> Result<Json<Vec<WalletResponse>>, AppError> {
-    // TODO: Extract user ID from JWT claims
-    let user_id = Uuid::nil(); // Placeholder
-    
-    let wallets = queries::get_wallets_by_user(&state.pool, user_id)
+    let wallets = queries::get_wallets_by_user(&state.pool, claims.sub)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to fetch wallets: {}", e)))?;
 
@@ -55,12 +53,12 @@ pub async fn list_wallets(
 /// Create a new wallet from mnemonic
 pub async fn create_wallet(
     State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
     Json(req): Json<CreateWalletRequest>,
 ) -> Result<Json<WalletWithMnemonic>, AppError> {
-    // TODO: Extract user ID and password from request
-    let user_id = Uuid::nil(); // Placeholder
-    let password = "placeholder"; // Should come from request
-    
+    let user_id = claims.sub;
+    let password = &req.password;
+
     // Generate or use provided mnemonic
     let mnemonic = if let Some(mnemonic_str) = &req.mnemonic {
         hd_wallet::validate_mnemonic(mnemonic_str)
@@ -73,12 +71,14 @@ pub async fn create_wallet(
     let mnemonic_phrase = mnemonic.to_string();
     let seed = hd_wallet::mnemonic_to_seed(&mnemonic, "");
 
-    // Derive Ethereum key (BIP44: m/44'/60'/0'/0/0)
-    // In production, use proper BIP32 derivation
+    // Derive Ethereum address and private key from seed
+    // NOTE: This is a simplified derivation. In production, use a proper BIP32 library
+    // like bip32 crate to derive the extended private key, then the child key at the
+    // BIP44 path, then extract the private key bytes.
     let eth_address = format!("0x{}", hex::encode(&seed[0..20]));
     let eth_private_key = hex::encode(&seed[0..32]);
 
-    // Encrypt private key
+    // Encrypt private key with user's password
     let encrypted_key = encryption::encrypt_data(&eth_private_key, password)
         .map_err(|e| AppError::Internal(format!("Failed to encrypt key: {}", e)))?;
 
@@ -95,7 +95,7 @@ pub async fn create_wallet(
     .await
     .map_err(|e| AppError::Internal(format!("Failed to create wallet: {}", e)))?;
 
-    // Securely clear sensitive data
+    // Securely clear sensitive data from memory
     let mut seed_vec = seed;
     encryption::secure_clear(&mut seed_vec);
 
@@ -115,11 +115,11 @@ pub async fn create_wallet(
 /// Import wallet from existing mnemonic
 pub async fn import_wallet(
     State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
     Json(req): Json<ImportWalletRequest>,
 ) -> Result<Json<WalletResponse>, AppError> {
-    // TODO: Extract user ID and password from request
-    let user_id = Uuid::nil(); // Placeholder
-    let password = "placeholder"; // Should come from request
+    let user_id = claims.sub;
+    let password = &req.password;
 
     // Validate mnemonic
     let mnemonic = hd_wallet::validate_mnemonic(&req.mnemonic)
@@ -127,11 +127,11 @@ pub async fn import_wallet(
 
     let seed = hd_wallet::mnemonic_to_seed(&mnemonic, "");
 
-    // Derive Ethereum address
+    // Derive Ethereum address and private key from seed
     let eth_address = format!("0x{}", hex::encode(&seed[0..20]));
     let eth_private_key = hex::encode(&seed[0..32]);
 
-    // Encrypt private key
+    // Encrypt private key with user's password
     let encrypted_key = encryption::encrypt_data(&eth_private_key, password)
         .map_err(|e| AppError::Internal(format!("Failed to encrypt key: {}", e)))?;
 
@@ -148,7 +148,7 @@ pub async fn import_wallet(
     .await
     .map_err(|e| AppError::Internal(format!("Failed to create wallet: {}", e)))?;
 
-    // Securely clear sensitive data
+    // Securely clear sensitive data from memory
     let mut seed_vec = seed;
     encryption::secure_clear(&mut seed_vec);
 
@@ -165,17 +165,33 @@ pub async fn import_wallet(
 /// Get wallet balance
 pub async fn get_balance(
     State(state): State<Arc<AppState>>,
-    axum::extract::Path(wallet_id): axum::extract::Path<Uuid>,
+    Extension(_claims): Extension<Claims>,
+    axum::extract::Path(wallet_id): axum::extract::Path<uuid::Uuid>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     let wallet = queries::get_wallet_by_id(&state.pool, wallet_id)
         .await
         .map_err(|e| AppError::NotFound(format!("Wallet not found: {}", e)))?;
 
-    // TODO: Fetch actual balance from blockchain
-    // For now, return stored balance
     Ok(Json(serde_json::json!({
         "wallet_id": wallet.id,
         "balance": wallet.balance,
         "chain": wallet.chain,
     })))
+}
+
+/// Delete a wallet
+pub async fn delete_wallet_handler(
+    State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
+    axum::extract::Path(wallet_id): axum::extract::Path<uuid::Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let deleted = delete::delete_wallet(&state.pool, wallet_id, claims.sub)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to delete wallet: {}", e)))?;
+
+    if !deleted {
+        return Err(AppError::NotFound("Wallet not found or not owned by user".to_string()));
+    }
+
+    Ok(Json(serde_json::json!({ "message": "Wallet deleted successfully" })))
 }

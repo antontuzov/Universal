@@ -19,8 +19,9 @@ pub struct RefreshRequest {
     pub refresh_token: String,
 }
 
-// Auth Responses
+// Auth Responses — serialized as camelCase for frontend compatibility
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthResponse {
     pub access_token: String,
     pub refresh_token: String,
@@ -28,6 +29,7 @@ pub struct AuthResponse {
 }
 
 #[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct UserResponse {
     pub id: Uuid,
     pub email: String,
@@ -38,7 +40,7 @@ pub struct UserResponse {
 // JWT Claims
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
-    pub sub: uuid::Uuid,
+    pub sub: Uuid,
     pub email: String,
     pub role: String,
     pub exp: i64,
