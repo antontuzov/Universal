@@ -1,0 +1,17 @@
+{
+  "name": "universal-wallet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A non-custodial, Hierarchical Deterministic (HD) wallet for managing multiple cryptocurrencies",
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
