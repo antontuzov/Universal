@@ -66,15 +66,11 @@ pub async fn change_password(
         .to_string();
 
     // Update in database
-    sqlx::query!(
-        r#"
-        UPDATE users
-        SET password_hash = $2, updated_at = NOW()
-        WHERE id = $1
-        "#,
-        user.id,
-        new_password_hash
+    sqlx::query(
+        "UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1"
     )
+    .bind(user.id)
+    .bind(&new_password_hash)
     .execute(&state.pool)
     .await
     .map_err(|e| AppError::Internal(format!("Failed to update password: {}", e)))?;

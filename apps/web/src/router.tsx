@@ -10,6 +10,8 @@ const DashboardTransactions = lazy(() => import('@/pages/dashboard/Transactions'
 const DashboardSettings = lazy(() => import('@/pages/dashboard/Settings'));
 const AdminLayout = lazy(() => import('@/components/layout/AdminLayout'));
 const AdminUsers = lazy(() => import('@/pages/admin/Users'));
+const AdminHealth = lazy(() => import('@/pages/admin/Health'));
+const AdminAuditLogs = lazy(() => import('@/pages/admin/AuditLogs'));
 
 // Auth guard: redirect to home if not authenticated
 const requireAuth = () => {
@@ -86,6 +88,18 @@ const adminIndexRoute = createRoute({
   component: AdminUsers,
 });
 
+const adminHealthRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/health',
+  component: AdminHealth,
+});
+
+const adminAuditLogsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/logs',
+  component: AdminAuditLogs,
+});
+
 // Build route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -95,7 +109,11 @@ const routeTree = rootRoute.addChildren([
     dashboardTransactionsRoute,
     dashboardSettingsRoute,
   ]),
-  adminRoute.addChildren([adminIndexRoute]),
+  adminRoute.addChildren([
+    adminIndexRoute,
+    adminHealthRoute,
+    adminAuditLogsRoute,
+  ]),
 ]);
 
 export const router = createRouter({ routeTree });

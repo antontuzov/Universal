@@ -69,7 +69,8 @@ pub async fn create_router(pool: PgPool) -> Router {
     // Admin routes (auth + admin role required)
     let admin_routes = Router::new()
         .route("/api/admin/users", get(crate::admin::list_users))
-        .route("/api/admin/stats", get(crate::admin::system_stats))
+        .route("/api/admin/health", get(crate::admin::system_health))
+        .route("/api/admin/audit-logs", get(crate::admin::audit_logs))
         .route_layer(middleware::from_fn_with_state(state.clone(), admin_guard));
 
     // Merge all routes and apply state

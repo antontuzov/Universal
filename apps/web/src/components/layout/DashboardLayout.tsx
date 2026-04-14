@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Wallet,
   ArrowLeftRight,
+  Settings,
   Shield,
   Menu,
   X,

@@ -19,7 +19,9 @@
       "Bash(./target/debug/universal-server)",
       "Bash(cat *)",
       "Bash(npx *)",
-      "Bash(echo *)"
+      "Bash(echo *)",
+      "Bash(open *)",
+      "Bash(docker ps)"
     ]
   },
   "$version": 3

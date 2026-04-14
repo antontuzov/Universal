@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, TrendingUp, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import api from '@/lib/api';
 
 interface WalletData {
@@ -26,6 +27,17 @@ export default function DashboardOverview() {
     const balance = parseFloat(w.balance) || 0;
     return sum + balance;
   }, 0) ?? 0;
+
+  // Simulated portfolio history (will be replaced with real data from API)
+  const portfolioData = [
+    { label: '7d ago', value: Math.max(0, totalBalance * 0.85) },
+    { label: '6d ago', value: Math.max(0, totalBalance * 0.88) },
+    { label: '5d ago', value: Math.max(0, totalBalance * 0.82) },
+    { label: '4d ago', value: Math.max(0, totalBalance * 0.91) },
+    { label: '3d ago', value: Math.max(0, totalBalance * 0.87) },
+    { label: '2d ago', value: Math.max(0, totalBalance * 0.95) },
+    { label: 'Today', value: totalBalance || 1234.56 },
+  ];
 
   return (
     <div className="space-y-6">
@@ -66,15 +78,41 @@ export default function DashboardOverview() {
         />
       </div>
 
-      {/* Portfolio Chart Placeholder */}
+      {/* Portfolio Chart */}
       <Card>
         <CardHeader>
           <CardTitle>Portfolio Performance</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-80 flex items-center justify-center bg-gray-100 rounded-lg">
-            <p className="text-gray-500">Chart will be integrated here</p>
-          </div>
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={portfolioData}>
+              <defs>
+                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#1e3a8a" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="label" stroke="#6b7280" fontSize={12} />
+              <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                }}
+                formatter={(value: number) => [`$${value.toLocaleString()}`, 'Portfolio Value']}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="#1e3a8a"
+                strokeWidth={2}
+                fill="url(#colorValue)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 

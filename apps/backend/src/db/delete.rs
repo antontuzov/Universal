@@ -7,14 +7,11 @@ pub async fn delete_wallet(
     wallet_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query!(
-        r#"
-        DELETE FROM wallets
-        WHERE id = $1 AND user_id = $2
-        "#,
-        wallet_id,
-        user_id
+    let result = sqlx::query(
+        "DELETE FROM wallets WHERE id = $1 AND user_id = $2"
     )
+    .bind(wallet_id)
+    .bind(user_id)
     .execute(pool)
     .await?;
 
