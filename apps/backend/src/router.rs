@@ -62,6 +62,7 @@ pub async fn create_router(pool: PgPool) -> Router {
         .route("/api/wallets", get(crate::wallet::list_wallets))
         .route("/api/wallets/create", post(crate::wallet::create_wallet))
         .route("/api/wallets/import", post(crate::wallet::import_wallet))
+        .route("/api/transactions", get(crate::transactions::list_transactions))
         .route("/api/transactions/send", post(crate::transactions::send_transaction))
         .nest("/api/user", crate::user::router(state.clone()))
         .route_layer(middleware::from_fn_with_state(state.clone(), auth_middleware));

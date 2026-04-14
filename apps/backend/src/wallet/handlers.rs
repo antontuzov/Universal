@@ -36,24 +36,41 @@ pub fn router(state: Arc<AppState>) -> Router {
 pub async fn list_wallets(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
-) -> Result<Json<Vec<WalletResponse>>, AppError> {
+) -> Result<Json<serde_json::Value>, AppError> {
     let wallets = queries::get_wallets_by_user(&state.pool, claims.sub)
         .await
         .map_err(|e| AppError::Internal(format!("Failed to fetch wallets: {}", e)))?;
 
-    let response: Vec<WalletResponse> = wallets
-        .into_iter()
-        .map(|w| WalletResponse {
-            id: w.id,
-            name: w.name,
-            chain: w.chain,
-            address: w.address,
-            balance: w.balance,
-            created_at: w.created_at,
-        })
+    let wallet_responses: Vec<serde_json::Value> = wallets
+        .iter()
+        .map(|w| serde_json::json!({
+            "id": w.id,
+            "name": w.name,
+            "chain": w.chain,
+            "address": w.address,
+            "balance": w.balance,
+            "createdAt": w.created_at,
+        }))
         .collect();
 
-    Ok(Json(response))
+    // Calculate per-chain totals
+    let mut chain_totals: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+    for w in &wallets {
+        let balance: f64 = w.balance.parse().unwrap_or(0.0);
+        *chain_totals.entry(w.chain.clone()).or_insert(0.0) += balance;
+    }
+
+    // Calculate total across all chains
+    let total_balance: f64 = chain_totals.values().sum();
+
+    Ok(Json(serde_json::json!({
+        "wallets": wallet_responses,
+        "summary": {
+            "totalWallets": wallets.len(),
+            "totalBalance": format!("{:.6}", total_balance),
+            "chainBalances": chain_totals.iter().map(|(k, v)| (k.clone(), format!("{:.6}", v))).collect::<std::collections::HashMap<_, _>>(),
+        }
+    })))
 }
 
 /// Create a new wallet from mnemonic

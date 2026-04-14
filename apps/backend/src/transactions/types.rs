@@ -2,6 +2,12 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
+pub struct PaginationQuery {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct SendTransactionRequest {
     pub wallet_id: Uuid,
     pub recipient_address: String,

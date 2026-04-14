@@ -14,19 +14,20 @@ interface WalletData {
 }
 
 export default function DashboardOverview() {
-  const { data: wallets, isLoading: walletsLoading } = useQuery({
+  const { data: walletData, isLoading: walletsLoading } = useQuery({
     queryKey: ['wallets'],
     queryFn: async () => {
-      const { data } = await api.get<WalletData[]>('/wallets');
+      const { data } = await api.get('/wallets');
       return data;
     },
   });
 
+  const wallets = walletData?.wallets ?? [];
+  const summary = walletData?.summary ?? {};
+  const chainBalances = summary.chainBalances ?? {};
+
   // Calculate total balance from real wallet data
-  const totalBalance = wallets?.reduce((sum, w) => {
-    const balance = parseFloat(w.balance) || 0;
-    return sum + balance;
-  }, 0) ?? 0;
+  const totalBalance = parseFloat(summary.totalBalance || '0');
 
   // Simulated portfolio history (will be replaced with real data from API)
   const portfolioData = [
@@ -57,22 +58,22 @@ export default function DashboardOverview() {
         />
         <StatCard
           title="Wallets"
-          value={walletsLoading ? '...' : String(wallets?.length ?? 0)}
+          value={walletsLoading ? '...' : String(wallets.length)}
           change="Across all chains"
           icon={Wallet}
           positive
         />
         <StatCard
           title="Ethereum"
-          value={walletsLoading ? '...' : String(wallets?.filter(w => w.chain === 'ethereum').length ?? 0)}
-          change="ETH wallets"
+          value={walletsLoading ? '...' : `Ξ ${chainBalances.ethereum || '0'}`}
+          change="ETH balance"
           icon={TrendingUp}
           positive
         />
         <StatCard
           title="Bitcoin"
-          value={walletsLoading ? '...' : String(wallets?.filter(w => w.chain === 'bitcoin').length ?? 0)}
-          change="BTC wallets"
+          value={walletsLoading ? '...' : `₿ ${chainBalances.bitcoin || '0'}`}
+          change="BTC balance"
           icon={ArrowDownRight}
           positive
         />
@@ -137,9 +138,9 @@ export default function DashboardOverview() {
                 </div>
               ))}
             </div>
-          ) : wallets && wallets.length > 0 ? (
+          ) : wallets.length > 0 ? (
             <div className="space-y-4">
-              {wallets.slice(0, 5).map((wallet) => (
+              {wallets.slice(0, 5).map((wallet: WalletData) => (
                 <div key={wallet.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
